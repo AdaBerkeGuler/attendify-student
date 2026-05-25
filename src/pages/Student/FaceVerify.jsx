@@ -36,6 +36,8 @@ export default function FaceVerify() {
   const [message,     setMessage]     = useState(DEFAULT_MSG);
   const [messageType, setMessageType] = useState('info');      // 'info' | 'warning' | 'error'
   const [submitting,  setSubmitting]  = useState(false);
+  const [livenessPassed, setLivenessPassed] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   // If we land here without a token (e.g. direct navigation), go back
   useEffect(() => {
@@ -44,46 +46,58 @@ export default function FaceVerify() {
     }
   }, [qrToken, navigate]);
 
-  const captureAndVerify = useCallback(async () => {
-    if (!webcamRef.current || phase !== 'verifying' || submitting || !qrToken) return;
-
+  // Phase 1: poll liveness until passed
+  const checkLiveness = useCallback(async () => {
+    if (!webcamRef.current || phase !== 'verifying' || submitting || livenessPassed) return;
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) return;
-
     setSubmitting(true);
-
     try {
       const imageFile = dataUrlToFile(imageSrc, 'capture.jpg');
+      const fd = new FormData();
+      fd.append('image', imageFile);
+      const data = await api.form('/attendance/liveness-check', fd);
+      if (data.is_live) {
+        setLivenessPassed(true);
+        setMessage('Liveness confirmed! Verifying identity…');
+        setMessageType('info');
+      } else {
+        setMessageType('warning');
+        setMessage('Please blink naturally and look at the camera.');
+      }
+    } catch {
+      // ignore, keep polling
+    } finally {
+      setSubmitting(false);
+    }
+  }, [phase, submitting, livenessPassed]);
 
-      // Backend expects multipart/form-data with:
-      //   qr_token  (Form field)
-      //   image     (File)
+  // Phase 2: submit once liveness passed
+  const submitAttendance = useCallback(async () => {
+    if (!webcamRef.current || phase !== 'verifying' || submitted || !qrToken || !livenessPassed) return;
+    setSubmitted(true);
+    setSubmitting(true);
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) { setSubmitted(false); setSubmitting(false); return; }
+    try {
+      const imageFile = dataUrlToFile(imageSrc, 'capture.jpg');
       const fd = new FormData();
       fd.append('qr_token', qrToken);
       fd.append('image', imageFile);
-
-      // api.form() sends FormData with the JWT Authorization header
       const data = await api.form('/attendance/submit', fd);
-
-      // Success — navigate to confirmation with the attendance record
       setMessage('Identity confirmed!');
       setMessageType('info');
       setPhase('success');
       setTimeout(() => navigate('/student/confirmation', { state: { session: data } }), 1500);
-
     } catch (err) {
       const detail = err.message || '';
-
-      // Map backend error messages to user-friendly guidance
+      setSubmitted(false);
       if (detail.includes('No face detected')) {
         setMessageType('error');
         setMessage('No face detected. Please look directly at the camera.');
       } else if (detail.includes('Face verification failed') || detail.includes('similarity')) {
         setMessageType('error');
         setMessage('Face not recognised. Please try again.');
-      } else if (detail.includes('Liveness')) {
-        setMessageType('warning');
-        setMessage('Liveness check failed. Please use a real face, not a photo.');
       } else if (detail.includes('Invalid or expired QR')) {
         setMessageType('error');
         setMessage('QR code has expired. Please scan again.');
@@ -97,22 +111,27 @@ export default function FaceVerify() {
         setMessage('You are not enrolled in this course.');
       } else {
         setMessageType('error');
-        setMessage('Verification failed. Retrying…');
+        setMessage('Verification failed. Please try again.');
+        setLivenessPassed(false);
       }
-      // Stay in 'verifying' phase so polling continues
     } finally {
       setSubmitting(false);
     }
-  }, [navigate, phase, qrToken, submitting]);
+  }, [navigate, phase, qrToken, submitted, livenessPassed]);
 
-  // Poll every 2 seconds while verifying
+  // Phase 1: poll liveness every 1.5s
   useEffect(() => {
-    if (phase !== 'verifying' || permissionDenied) return;
-    const interval = setInterval(() => {
-      captureAndVerify();
-    }, 2000);
+    if (phase !== 'verifying' || permissionDenied || livenessPassed) return;
+    const interval = setInterval(checkLiveness, 1500);
     return () => clearInterval(interval);
-  }, [phase, permissionDenied, captureAndVerify]);
+  }, [phase, permissionDenied, livenessPassed, checkLiveness]);
+
+  // Phase 2: submit once after liveness passes
+  useEffect(() => {
+    if (livenessPassed && !submitted && phase === 'verifying') {
+      submitAttendance();
+    }
+  }, [livenessPassed, submitted, phase, submitAttendance]);
 
   const verifying = phase === 'verifying' && !permissionDenied;
   const success   = phase === 'success';
