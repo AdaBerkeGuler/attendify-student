@@ -83,11 +83,11 @@ export default function Schedule() {
 
   const selectedDayName = DAY_NAMES[selectedIdx];
   const dayClasses = schedule
-    .filter((s) => s.day_of_week === selectedDayName)
+    .filter((s) => s.day_of_week === selectedDayName.toLowerCase())
     .sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''));
 
   function dayHasClasses(idx) {
-    return schedule.some((s) => s.day_of_week === DAY_NAMES[idx]);
+    return schedule.some((s) => s.day_of_week === DAY_NAMES[idx].toLowerCase());
   }
 
   const isToday  = selectedIdx === todayIdx;
@@ -356,3 +356,4 @@ export default function Schedule() {
     </div>
   );
 }
+

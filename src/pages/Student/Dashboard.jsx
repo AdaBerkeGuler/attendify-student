@@ -70,7 +70,7 @@ export default function Dashboard() {
     navigate('/login');
   }
 
-  const nextClass = todaysClasses[0];
+  const nextClass = dashboard?.next_class ?? null;
 
   return (
     <div style={{ background: t.bg, flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -283,7 +283,7 @@ export default function Dashboard() {
           {/* Course info */}
           <div style={{ position: 'absolute', bottom: 16, left: 16, right: 24 }}>
             <p style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: -0.3, marginBottom: 6, margin: '0 0 6px' }}>
-              {nextClass?.name ?? 'No classes today'}
+              {nextClass?.course_name ?? 'No classes today'}
             </p>
             {nextClass && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: 'rgba(255,255,255,.6)' }}>
@@ -293,7 +293,7 @@ export default function Dashboard() {
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
-                  {nextClass.time}
+                  {nextClass.start_time?.slice(0,5)} � {nextClass.end_time?.slice(0,5)}
                 </span>
                 <span>·</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -307,7 +307,7 @@ export default function Dashboard() {
                 {nextClass.instructor && (
                   <>
                     <span>·</span>
-                    <span>{nextClass.instructor}</span>
+                    <span>{nextClass.instructor_name}</span>
                   </>
                 )}
               </div>
@@ -371,11 +371,11 @@ export default function Dashboard() {
           </div>
 
           {recentActivity.map((item, idx) => {
-            const color = COURSE_COLORS[item.code] ?? '#2563eb';
-            const abbr = (item.code ?? '').slice(0, 2);
-            const present = item.status === 'Present';
+            const color = COURSE_COLORS[item.course_code] ?? '#2563eb';
+            const abbr = (item.course_code ?? '').slice(0, 2);
+            const present = item.status === 'present';
             return (
-              <div key={item.code ?? idx} style={{
+              <div key={item.course_code ?? idx} style={{
                 background: t.card,
                 borderRadius: 14,
                 padding: '13px 15px',
@@ -397,8 +397,8 @@ export default function Dashboard() {
                     {abbr}
                   </div>
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: t.txt, margin: 0 }}>{item.name}</p>
-                    <p style={{ fontSize: 11, color: t.txtL, margin: '2px 0 0' }}>{item.date}</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: t.txt, margin: 0 }}>{item.course_name}</p>
+                    <p style={{ fontSize: 11, color: t.txtL, margin: '2px 0 0' }}>{item.submitted_at ? new Date(item.submitted_at).toLocaleDateString() : ''}</p>
                   </div>
                 </div>
                 <span style={{
@@ -464,3 +464,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
