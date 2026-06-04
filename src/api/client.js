@@ -31,3 +31,4 @@ export const api = {
     return request('POST', '/auth/login', fd, true)
   },
 }
+
