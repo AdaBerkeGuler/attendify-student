@@ -31,6 +31,9 @@ export default function FaceVerify() {
   // qr_token passed from QRScan via navigation state
   const qrToken = locationState.state?.qr_token ?? null;
 
+  const studentData = JSON.parse(localStorage.getItem('currentStudent') || '{}');
+  const clientKey = studentData.user_id || 'default';
+
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [phase,       setPhase]       = useState('verifying'); // 'verifying' | 'success' | 'error'
   const [message,     setMessage]     = useState(DEFAULT_MSG);
@@ -56,7 +59,7 @@ export default function FaceVerify() {
       const imageFile = dataUrlToFile(imageSrc, 'capture.jpg');
       const fd = new FormData();
       fd.append('image', imageFile);
-      const data = await api.form('/attendance/liveness-check', fd);
+      const data = await api.form(`/attendance/liveness-check?client_key=${clientKey}`, fd);
       if (data.is_live) {
         setLivenessPassed(true);
         setMessage('Liveness confirmed! Verifying identity…');
@@ -98,6 +101,7 @@ export default function FaceVerify() {
       } else if (detail.includes('Face verification failed') || detail.includes('similarity')) {
         setMessageType('error');
         setMessage('Face not recognised. Please try again.');
+        setLivenessPassed(false);
       } else if (detail.includes('Invalid or expired QR')) {
         setMessageType('error');
         setMessage('QR code has expired. Please scan again.');
