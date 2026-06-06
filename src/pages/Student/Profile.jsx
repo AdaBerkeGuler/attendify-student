@@ -77,8 +77,13 @@ export default function Profile() {
     Promise.all([
       api.get('/auth/me').catch(() => null),
       api.get('/settings/notifications').catch(() => null),
-    ]).then(([meData, notifData]) => {
-      if (meData) setProfile(meData);
+      api.get('/attendance/my/summary').catch(() => null),
+      api.get('/attendance/my/summary').catch(() => null),
+    ]).then(([meData, notifData, summaryData]) => {
+      const overallRate = Array.isArray(summaryData) && summaryData.length > 0
+        ? Math.round(summaryData.reduce((s, c) => s + (c.attendance_rate ?? 0), 0) / summaryData.length)
+        : 0;
+      if (meData) setProfile({ ...meData, overall_attendance_rate: overallRate });
       if (notifData) setNotifications({
         email_alerts:            notifData.email_alerts            ?? true,
         attendance_confirmation: notifData.attendance_confirmation ?? true,

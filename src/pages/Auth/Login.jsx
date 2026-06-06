@@ -48,7 +48,7 @@ export default function Login() {
       const data = await api.loginForm(identifier.trim(), password);
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('currentStudent', JSON.stringify({
-        full_name: data.full_name,
+        full_name: (data.first_name ?? "") + " " + (data.last_name ?? ""),
         email: identifier.trim(),
         student_number: data.student_number,
         department: data.department,
@@ -284,3 +284,4 @@ function EyeOffIcon({ color }) {
     </svg>
   );
 }
+
