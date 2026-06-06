@@ -86,7 +86,7 @@ export default function Profile() {
         : 0;
       const totalSessions = dashData?.recent_activity?.length ?? 0;
       const totalCourses = Array.isArray(summaryData) ? summaryData.length : 0;
-      if (meData) setProfile({ ...meData, overall_attendance_rate: overallRate, total_sessions: totalSessions, total_courses: totalCourses });
+      if (meData) setProfile({ ...meData, full_name: ((meData.first_name ?? '') + ' ' + (meData.last_name ?? '')).trim() || meData.full_name, overall_attendance_rate: overallRate, total_sessions: totalSessions, total_courses: totalCourses });
       if (notifData) setNotifications({
         email_alerts:            notifData.email_alerts            ?? true,
         attendance_confirmation: notifData.attendance_confirmation ?? true,
