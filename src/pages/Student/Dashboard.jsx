@@ -59,7 +59,6 @@ export default function Dashboard() {
     </div>
   );
 
-  const todaysClasses = dashboard?.enrolled_courses ?? [];
   const recentActivity = dashboard?.recent_activity ?? [];
   const displayName = currentStudent.full_name ?? currentStudent.name ?? '';
   const initials = (displayName).split(' ').map((w) => w[0]).join('').toUpperCase();
@@ -293,7 +292,7 @@ export default function Dashboard() {
                     <circle cx="12" cy="12" r="10" />
                     <polyline points="12 6 12 12 16 14" />
                   </svg>
-                  {nextClass.start_time?.slice(0,5)} � {nextClass.end_time?.slice(0,5)}
+                  {nextClass.start_time?.slice(0,5)} – {nextClass.end_time?.slice(0,5)}
                 </span>
                 <span>·</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -304,7 +303,7 @@ export default function Dashboard() {
                   </svg>
                   {nextClass.room}
                 </span>
-                {nextClass.instructor && (
+                {nextClass.instructor_name && (
                   <>
                     <span>·</span>
                     <span>{nextClass.instructor_name}</span>
@@ -370,12 +369,16 @@ export default function Dashboard() {
             }}>View All</button>
           </div>
 
-          {recentActivity.map((item, idx) => {
-            const color = COURSE_COLORS[item.course_code] ?? '#2563eb';
-            const abbr = (item.course_code ?? '').slice(0, 2);
-            const present = item.status === 'present';
+          {recentActivity.slice(0, 5).map((item, idx) => {
+            const code = item.course_code ?? item.code ?? '';
+            const color = COURSE_COLORS[code] ?? '#2563eb';
+            const abbr = code.replace(/\d/g, '').slice(0, 2);
+            const present = item.status?.toLowerCase() === 'present';
+            const dateStr = item.submitted_at
+              ? new Date(item.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+              : item.date ?? '';
             return (
-              <div key={item.course_code ?? idx} style={{
+              <div key={idx} style={{
                 background: t.card,
                 borderRadius: 14,
                 padding: '13px 15px',
@@ -397,8 +400,8 @@ export default function Dashboard() {
                     {abbr}
                   </div>
                   <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: t.txt, margin: 0 }}>{item.course_name}</p>
-                    <p style={{ fontSize: 11, color: t.txtL, margin: '2px 0 0' }}>{item.submitted_at ? new Date(item.submitted_at).toLocaleDateString() : ''}</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: t.txt, margin: 0 }}>{item.course_name ?? item.name}</p>
+                    <p style={{ fontSize: 11, color: t.txtL, margin: '2px 0 0' }}>{dateStr}</p>
                   </div>
                 </div>
                 <span style={{
@@ -464,5 +467,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-

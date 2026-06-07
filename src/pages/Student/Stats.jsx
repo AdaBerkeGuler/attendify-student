@@ -14,8 +14,8 @@ const NAV_ITEMS = [
 ];
 
 function getStatus(pct) {
-  if (pct >= 80) return 'ok';
-  if (pct >= 65) return 'atrisk';
+  if (pct >= 85) return 'ok';
+  if (pct >= 70) return 'atrisk';
   return 'critical';
 }
 
@@ -60,12 +60,12 @@ export default function Stats() {
   }
 
   // Overall totals — computed from raw counts, not percentages
-  const totalPresent  = courseStats.reduce((sum, s) => sum + (s.attended ?? 0), 0);
-  const totalAbsent   = courseStats.reduce((sum, s) => sum + ((s.total_sessions ?? 0) - (s.attended ?? 0)), 0);
-  const totalClasses  = courseStats.reduce((sum, s) => sum + (s.total_sessions ?? 0), 0);
+  const totalPresent  = courseStats.reduce((sum, s) => sum + (s.attended ?? s.present ?? 0), 0);
+  const totalClasses  = courseStats.reduce((sum, s) => sum + (s.total_sessions ?? s.total ?? 0), 0);
+  const totalAbsent   = totalClasses - totalPresent;
   const overallPct    = totalClasses > 0 ? Math.round((totalPresent / totalClasses) * 100) : 0;
 
-  const atRiskCourses = courseStats.filter((s) => (s.attendance_rate ?? 0) < 80);
+  const atRiskCourses = courseStats.filter((s) => (s.attendance_rate ?? s.percentage ?? 0) < 85);
 
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: t.bg, gap: 14 }}>
@@ -224,7 +224,7 @@ export default function Stats() {
         {/* Per-course cards */}
         {courseStats.map((s, idx) => {
           const color  = COLORS[idx % COLORS.length];
-          const pct    = Math.round(s.attendance_rate ?? 0);
+          const pct    = s.attendance_rate ?? s.percentage ?? 0;
           const status = getStatus(pct);
           const pctCol = statusColor(status);
 
@@ -276,9 +276,9 @@ export default function Stats() {
 
               {/* Footer row */}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                <span style={{ color: t.ok,   fontWeight: 600 }}>✓ {s.attended ?? 0} present</span>
-                <span style={{ color: t.acc,  fontWeight: 600 }}>✗ {(s.total_sessions ?? 0) - (s.attended ?? 0)} absent</span>
-                <span style={{ color: t.txtL }}>{s.total_sessions ?? 0} total</span>
+                <span style={{ color: t.ok,   fontWeight: 600 }}>✓ {s.attended ?? s.present ?? 0} present</span>
+                <span style={{ color: t.acc,  fontWeight: 600 }}>✗ {(s.total_sessions ?? s.total ?? 0) - (s.attended ?? s.present ?? 0)} absent</span>
+                <span style={{ color: t.txtL }}>{s.total_sessions ?? s.total ?? 0} total</span>
               </div>
             </div>
           );
@@ -312,4 +312,3 @@ export default function Stats() {
     </div>
   );
 }
-

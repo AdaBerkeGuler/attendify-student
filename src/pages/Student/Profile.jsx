@@ -77,16 +77,8 @@ export default function Profile() {
     Promise.all([
       api.get('/auth/me').catch(() => null),
       api.get('/settings/notifications').catch(() => null),
-      api.get('/attendance/my/summary').catch(() => null),
-      api.get('/students/me/dashboard').catch(() => null),
-      api.get('/attendance/my/summary').catch(() => null),
-    ]).then(([meData, notifData, summaryData, dashData]) => {
-      const overallRate = Array.isArray(summaryData) && summaryData.length > 0
-        ? Math.round(summaryData.reduce((s, c) => s + (c.attendance_rate ?? 0), 0) / summaryData.length)
-        : 0;
-      const totalSessions = dashData?.recent_activity?.length ?? 0;
-      const totalCourses = Array.isArray(summaryData) ? summaryData.length : 0;
-      if (meData) setProfile({ ...meData, full_name: ((meData.first_name ?? '') + ' ' + (meData.last_name ?? '')).trim() || meData.full_name, overall_attendance_rate: overallRate, total_sessions: totalSessions, total_courses: totalCourses });
+    ]).then(([meData, notifData]) => {
+      if (meData) setProfile(meData);
       if (notifData) setNotifications({
         email_alerts:            notifData.email_alerts            ?? true,
         attendance_confirmation: notifData.attendance_confirmation ?? true,

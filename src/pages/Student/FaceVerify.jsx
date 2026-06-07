@@ -11,6 +11,7 @@ const WEBCAM_CONSTRAINTS = {
 };
 
 const DEFAULT_MSG = 'Please hold your phone steady and look directly at the screen.';
+const BLINK_MSG   = 'Please blink once to confirm you are real.';
 
 // Convert a base64 data URL to a File object
 function dataUrlToFile(dataUrl, filename = 'capture.jpg') {
@@ -23,85 +24,118 @@ function dataUrlToFile(dataUrl, filename = 'capture.jpg') {
   return new File([u8arr], filename, { type: mime });
 }
 
+// Unique key per session so ML service tracks blinks correctly
+const CLIENT_KEY = `fv_${Date.now()}`;
+
 export default function FaceVerify() {
   const navigate      = useNavigate();
   const locationState = useLocation();
   const webcamRef     = useRef(null);
 
-  // qr_token passed from QRScan via navigation state
   const qrToken = locationState.state?.qr_token ?? null;
 
-  const studentData = JSON.parse(localStorage.getItem('currentStudent') || '{}');
-  const clientKey = studentData.user_id || 'default';
-
   const [permissionDenied, setPermissionDenied] = useState(false);
-  const [phase,       setPhase]       = useState('verifying'); // 'verifying' | 'success' | 'error'
+  // step: 'liveness' → blink check first, then 'submit' → face match
+  const [step,        setStep]        = useState('liveness');
+  const [phase,       setPhase]       = useState('verifying'); // 'verifying' | 'success'
   const [message,     setMessage]     = useState(DEFAULT_MSG);
-  const [messageType, setMessageType] = useState('info');      // 'info' | 'warning' | 'error'
+  const [messageType, setMessageType] = useState('info');
   const [submitting,  setSubmitting]  = useState(false);
-  const [livenessPassed, setLivenessPassed] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
-  // If we land here without a token (e.g. direct navigation), go back
   useEffect(() => {
-    if (!qrToken) {
-      navigate('/student/scan', { replace: true });
-    }
+    if (!qrToken) navigate('/student/scan', { replace: true });
   }, [qrToken, navigate]);
 
-  // Phase 1: poll liveness until passed
-  const checkLiveness = useCallback(async () => {
-    if (!webcamRef.current || phase !== 'verifying' || submitting || livenessPassed) return;
+  // Show blink instruction only on initial liveness step (not after error reset — setTimeout handles that)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    // step changed back to liveness — message already set by setTimeout
+  }, [step]);
+
+  const captureAndVerify = useCallback(async () => {
+    if (!webcamRef.current || phase !== 'verifying' || submitting || !qrToken) return;
+
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) return;
-    setSubmitting(true);
-    try {
-      const imageFile = dataUrlToFile(imageSrc, 'capture.jpg');
-      const fd = new FormData();
-      fd.append('image', imageFile);
-      const data = await api.form(`/attendance/liveness-check?client_key=${clientKey}`, fd);
-      if (data.is_live) {
-        setLivenessPassed(true);
-        setMessage('Liveness confirmed! Verifying identity…');
-        setMessageType('info');
-      } else {
-        setMessageType('warning');
-        setMessage('Please blink naturally and look at the camera.');
-      }
-    } catch {
-      // ignore, keep polling
-    } finally {
-      setSubmitting(false);
-    }
-  }, [phase, submitting, livenessPassed]);
 
-  // Phase 2: submit once liveness passed
-  const submitAttendance = useCallback(async () => {
-    if (!webcamRef.current || phase !== 'verifying' || submitted || !qrToken || !livenessPassed) return;
-    setSubmitted(true);
     setSubmitting(true);
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) { setSubmitted(false); setSubmitting(false); return; }
+
     try {
       const imageFile = dataUrlToFile(imageSrc, 'capture.jpg');
+
+      // ── Step 1: Liveness (blink) check ──
+      if (step === 'liveness') {
+        const fd = new FormData();
+        fd.append('image', imageFile);
+        const result = await api.form(`/attendance/liveness-check?client_key=${CLIENT_KEY}`, fd);
+
+        if (result?.is_live) {
+          setStep('submit');
+          setMessage('Blink detected! Verifying identity…');
+          setMessageType('info');
+        } else {
+          const reason = result?.reason || '';
+          if (reason === 'no_face') {
+            setMessageType('error');
+            setMessage('No face detected. Please look directly at the camera.');
+          } else if (reason === 'multiple_faces') {
+            setMessageType('error');
+            setMessage('Multiple faces detected. Please make sure only your face is visible.');
+          } else if (reason === 'blur') {
+            setMessageType('warning');
+            setMessage('Image too blurry. Hold your phone steady.');
+          } else if (reason === 'no_eye_landmarks') {
+            setMessageType('warning');
+            setMessage('Cannot detect eyes. Move closer to the camera.');
+          } else {
+            setMessageType('warning');
+            setMessage('Please blink once to confirm you are real.');
+          }
+        }
+        return;
+      }
+
+      // ── Step 2: Face match + attendance submit ──
       const fd = new FormData();
       fd.append('qr_token', qrToken);
       fd.append('image', imageFile);
       const data = await api.form('/attendance/submit', fd);
+
       setMessage('Identity confirmed!');
       setMessageType('info');
       setPhase('success');
-      setTimeout(() => navigate('/student/confirmation', { state: { session: data } }), 1500);
+      const submittedAt = data.submitted_at ? new Date(data.submitted_at) : new Date();
+      const sessionData = {
+        ...data,
+        date: submittedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+        time: submittedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        status: data.status ?? 'present',
+      };
+      setTimeout(() => navigate('/student/confirmation', { state: { session: sessionData } }), 1500);
+
     } catch (err) {
       const detail = err.message || '';
-      setSubmitted(false);
+
       if (detail.includes('No face detected')) {
         setMessageType('error');
         setMessage('No face detected. Please look directly at the camera.');
       } else if (detail.includes('Face verification failed') || detail.includes('similarity')) {
         setMessageType('error');
-        setMessage('Face not recognised. Please try again.');
-        setLivenessPassed(false);
+        setMessage('Your face does not match this account. Please try again or contact your instructor.');
+        setTimeout(() => {
+          setStep('liveness');
+          setMessage(BLINK_MSG);
+          setMessageType('info');
+        }, 3000);
+      } else if (detail.includes('Liveness')) {
+        setMessageType('warning');
+        setMessage('Liveness check failed. Please use a real face, not a photo.');
+        setTimeout(() => {
+          setStep('liveness');
+          setMessage(BLINK_MSG);
+          setMessageType('info');
+        }, 3000);
       } else if (detail.includes('Invalid or expired QR')) {
         setMessageType('error');
         setMessage('QR code has expired. Please scan again.');
@@ -115,27 +149,21 @@ export default function FaceVerify() {
         setMessage('You are not enrolled in this course.');
       } else {
         setMessageType('error');
-        setMessage('Verification failed. Please try again.');
-        setLivenessPassed(false);
+        setMessage('Verification failed. Retrying…');
       }
     } finally {
       setSubmitting(false);
     }
-  }, [navigate, phase, qrToken, submitted, livenessPassed]);
+  }, [navigate, phase, step, qrToken, submitting]);
 
-  // Phase 1: poll liveness every 1.5s
+  // Poll every 1.5 seconds
   useEffect(() => {
-    if (phase !== 'verifying' || permissionDenied || livenessPassed) return;
-    const interval = setInterval(checkLiveness, 1500);
+    if (phase !== 'verifying' || permissionDenied) return;
+    const interval = setInterval(() => {
+      captureAndVerify();
+    }, 1500);
     return () => clearInterval(interval);
-  }, [phase, permissionDenied, livenessPassed, checkLiveness]);
-
-  // Phase 2: submit once after liveness passes
-  useEffect(() => {
-    if (livenessPassed && !submitted && phase === 'verifying') {
-      submitAttendance();
-    }
-  }, [livenessPassed, submitted, phase, submitAttendance]);
+  }, [phase, permissionDenied, captureAndVerify]);
 
   const verifying = phase === 'verifying' && !permissionDenied;
   const success   = phase === 'success';

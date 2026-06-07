@@ -83,11 +83,11 @@ export default function Schedule() {
 
   const selectedDayName = DAY_NAMES[selectedIdx];
   const dayClasses = schedule
-    .filter((s) => s.day_of_week === selectedDayName.toLowerCase())
+    .filter((s) => s.day_of_week?.toLowerCase() === selectedDayName.toLowerCase())
     .sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''));
 
   function dayHasClasses(idx) {
-    return schedule.some((s) => s.day_of_week === DAY_NAMES[idx].toLowerCase());
+    return schedule.some((s) => s.day_of_week?.toLowerCase() === DAY_NAMES[idx].toLowerCase());
   }
 
   const isToday  = selectedIdx === todayIdx;
@@ -233,7 +233,13 @@ export default function Schedule() {
                 ? `${formatTime(course.start_time)} – ${formatTime(course.end_time)}`
                 : '—';
 
+              const isPast   = selectedIdx < todayIdx;
               const showScan = isToday && todayIdx >= 0;
+
+              const badgeLabel = isToday ? '● Today' : isPast ? 'Past' : 'Upcoming';
+              const badgeBg    = isToday ? t.accL : isPast ? t.bg : t.priLL;
+              const badgeColor = isToday ? t.acc  : isPast ? t.txtL : t.pri;
+              const badgeBorder = isToday ? `1px solid ${t.accLL}` : 'none';
 
               return (
                 <div key={idx} style={{
@@ -254,11 +260,9 @@ export default function Schedule() {
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
                       whiteSpace: 'nowrap', flexShrink: 0,
-                      background: isToday ? t.accL : t.bg,
-                      color: isToday ? t.acc : t.txtL,
-                      border: isToday ? `1px solid ${t.accLL}` : 'none',
+                      background: badgeBg, color: badgeColor, border: badgeBorder,
                     }}>
-                      {isToday ? '● Today' : 'Upcoming'}
+                      {badgeLabel}
                     </span>
                   </div>
 
@@ -356,4 +360,3 @@ export default function Schedule() {
     </div>
   );
 }
-
