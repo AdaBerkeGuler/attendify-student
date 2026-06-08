@@ -26,7 +26,6 @@ export default function Dashboard() {
   const { theme: t, isDark } = useTheme();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [bannerVisible, setBannerVisible] = useState(true);
   const [popupOpen, setPopupOpen] = useState(false);
   const avatarRef = useRef(null);
 
@@ -189,7 +188,7 @@ export default function Dashboard() {
 
         {/* Greeting */}
         <div>
-          <p style={{ fontSize: 13, color: t.txtL, margin: 0 }}>Good morning</p>
+          <p style={{ fontSize: 13, color: t.txtL, margin: 0 }}>{(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; })()}</p>
           <h2 style={{ fontSize: 21, fontWeight: 800, color: t.txt, letterSpacing: -0.5, margin: '2px 0' }}>
             {displayName}
           </h2>
@@ -200,44 +199,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Attendance recorded banner */}
-        {bannerVisible && (
-          <div role="alert" style={{
-            background: t.accL,
-            borderRadius: 14,
-            padding: '13px 16px',
-            border: `1px solid ${t.accLL}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%',
-                background: t.acc,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <svg width={13} height={13} viewBox="0 0 24 24" fill="none"
-                  stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              </div>
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: t.acc, margin: 0 }}>Attendance Recorded</p>
-                <p style={{ fontSize: 12, color: t.txtL, margin: '2px 0 0' }}>
-                  Successfully checked in for Physics 101 at 09:05 AM.
-                </p>
-              </div>
-            </div>
-            <button type="button" aria-label="Dismiss"
-              onClick={() => setBannerVisible(false)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: t.txtL, padding: 0, flexShrink: 0 }}>
-              ×
-            </button>
-          </div>
-        )}
+
 
         {/* Next class hero card */}
         <div style={{

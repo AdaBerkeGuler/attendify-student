@@ -30,8 +30,7 @@ const INFO_ICON_PATHS = {
 const ALERT_ROWS = [
   { key: 'email_alerts',            icon: 'mail',    title: 'Email Alerts',            desc: 'Receive attendance updates by email'   },
   { key: 'attendance_confirmation', icon: 'check',   title: 'Attendance Confirmation', desc: 'Notify when attendance is recorded'    },
-  { key: 'low_attendance_warning',  icon: 'warning', title: 'Low Attendance Warning',  desc: 'Alert when below 75% attendance'       },
-  { key: 'session_reminders',       icon: 'bell',    title: 'Session Reminders',       desc: '15-min reminder before each class'     },
+
 ];
 
 export default function Profile() {
@@ -44,7 +43,7 @@ export default function Profile() {
   const [activeTab,     setActiveTab]     = useState('info');
   const [pwExpanded,    setPwExpanded]    = useState(false);
   const [notifications, setNotifications] = useState({
-    email_alerts: true, attendance_confirmation: true, low_attendance_warning: true, session_reminders: false,
+    email_alerts: true, attendance_confirmation: true,
   });
   const [notifLoading, setNotifLoading] = useState(true);
   const [lang, setLang] = useState(
@@ -77,13 +76,21 @@ export default function Profile() {
     Promise.all([
       api.get('/auth/me').catch(() => null),
       api.get('/settings/notifications').catch(() => null),
-    ]).then(([meData, notifData]) => {
-      if (meData) setProfile(meData);
+      api.get('/attendance/my/summary').catch(() => null),
+    ]).then(([meData, notifData, summaryData]) => {
+      if (meData) {
+        // Calculate overall attendance rate from summary
+        if (summaryData && Array.isArray(summaryData) && summaryData.length > 0) {
+          const avg = summaryData.reduce((sum, s) => sum + (s.attendance_rate ?? 0), 0) / summaryData.length;
+          meData.overall_attendance_rate = Math.round(avg);
+        } else {
+          meData.overall_attendance_rate = meData.overall_attendance_rate ?? 0;
+        }
+        setProfile(meData);
+      }
       if (notifData) setNotifications({
         email_alerts:            notifData.email_alerts            ?? true,
         attendance_confirmation: notifData.attendance_confirmation ?? true,
-        low_attendance_warning:  notifData.low_attendance_warning  ?? true,
-        session_reminders:       notifData.session_reminders       ?? false,
       });
     }).finally(() => {
       setLoading(false);
@@ -557,7 +564,7 @@ export default function Profile() {
                 </div>
                 <p style={{ fontSize: 13, fontWeight: 700, color: t.txt, margin: 0, flex: 1 }}>Time Zone</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 12, color: t.txtL }}>GMT+5</span>
+                  <span style={{ fontSize: 12, color: t.txtL }}>{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
                   <svg width={16} height={16} viewBox="0 0 24 24" fill="none"
                     stroke={t.txtL} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="9 18 15 12 9 6" />
