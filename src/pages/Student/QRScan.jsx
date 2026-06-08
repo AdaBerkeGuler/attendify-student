@@ -8,42 +8,6 @@ import { useTheme } from '../../context/ThemeContext';
 const TIMEOUT_MS = 30_000;
 const SCAN_INTERVAL_MS = 600;
 
-const REPORT_REASONS = [
-  {
-    id: 'qr_failed',
-    label: 'QR Code not working',
-    icon: (color) => (
-      <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
-        stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z" />
-        <path d="M14 14h3v3 M17 14v3h3 M17 20h3" />
-      </svg>
-    ),
-  },
-  {
-    id: 'camera_error',
-    label: 'Camera not working',
-    icon: (color) => (
-      <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
-        stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-        <circle cx="12" cy="13" r="4" />
-      </svg>
-    ),
-  },
-  {
-    id: 'other',
-    label: 'Other issue',
-    icon: (color) => (
-      <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
-        stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-      </svg>
-    ),
-  },
-];
 
 function dataUrlToFile(dataUrl, filename = 'frame.jpg') {
   const [header, data] = dataUrl.split(',');
@@ -85,12 +49,8 @@ export default function QRScan() {
   const [error,   setError]   = useState('');
 
   // Report modal state
-  const [reportOpen,      setReportOpen]      = useState(false);
-  const [selectedReason,  setSelectedReason]  = useState(null);
   const [scannedToken,    setScannedToken]    = useState(null);
-  const [notifyLoading,   setNotifyLoading]   = useState(false);
   const [notifySuccess,   setNotifySuccess]   = useState(false);
-  const [notifyError,     setNotifyError]     = useState('');
 
   useEffect(() => {
     decoderRef.current = new Html5Qrcode('qr-decode-worker');
@@ -180,26 +140,9 @@ export default function QRScan() {
     setStatus('loading');
   }, []);
 
-  async function handleNotifyInstructor() {
-    if (!selectedReason) return;
-    setNotifyLoading(true);
-    setNotifyError('');
-    try {
-      await api.post('/attendance/notify-instructor', { reason: selectedReason, qr_token: scannedToken });
-      setNotifySuccess(true);
-    } catch {
-      setNotifyError('Could not send notification. Please try again.');
-    } finally {
-      setNotifyLoading(false);
-    }
-  }
 
-  function closeReport() {
-    setReportOpen(false);
-    setSelectedReason(null);
-    setNotifySuccess(false);
-    setNotifyError('');
-  }
+
+
 
   const scanning = status === 'scanning' || status === 'loading';
   const failed   = status === 'denied'   || status === 'timeout';
@@ -276,13 +219,6 @@ export default function QRScan() {
             </div>
 
             {/* Having trouble? */}
-            <button type="button" onClick={() => setReportOpen(true)} style={{
-              background: t.priLL, border: `1.5px solid ${t.priL}`, borderRadius: 12,
-              padding: '9px 18px', fontSize: 13, fontWeight: 700, color: t.pri,
-              cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
-            }}>
-              Having trouble?
-            </button>
 
             {/* Dev bypass */}
             {import.meta.env.DEV && (
@@ -332,15 +268,6 @@ export default function QRScan() {
                 <p key={r} style={{ fontSize: 12, color: t.txtL, margin: '0 0 4px', lineHeight: 1.5 }}>· {r}</p>
               ))}
             </div>
-            <button type="button" onClick={() => setReportOpen(true)} style={{
-              width: '100%', background: 'linear-gradient(135deg,#047857,#059669)',
-              color: '#fff', border: 'none', borderRadius: 14,
-              padding: '13px 16px', fontSize: 15, fontWeight: 700,
-              cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
-              boxShadow: '0 6px 18px rgba(5,150,105,.3)',
-            }}>
-              Notify Instructor
-            </button>
             <button type="button" onClick={handleRetry} style={{
               width: '100%', padding: 12, borderRadius: 12,
               border: `1.5px solid ${t.bdr}`, background: t.card,
@@ -356,120 +283,7 @@ export default function QRScan() {
           style={{ position: 'absolute', left: '-9999px', top: 0, width: 1, height: 1, overflow: 'hidden' }} />
       </div>
 
-      {/* ══ REPORT MODAL ══ */}
-      {reportOpen && (
-        <div
-          onClick={closeReport}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: t.card, borderRadius: '20px 20px 0 0',
-              padding: '20px 18px 32px', width: '100%', maxWidth: 430,
-              boxShadow: '0 -8px 32px rgba(0,0,0,.18)',
-            }}
-          >
-            <div style={{ width: 36, height: 4, borderRadius: 999, background: t.bdr, margin: '0 auto 18px' }} />
 
-            {notifySuccess ? (
-              <div style={{ textAlign: 'center', padding: '12px 0 4px' }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: '50%', background: t.okL,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px',
-                }}>
-                  <svg width={26} height={26} viewBox="0 0 24 24" fill="none"
-                    stroke={t.ok} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </div>
-                <p style={{ fontSize: 14, fontWeight: 700, color: t.txt, margin: '0 0 8px' }}>Instructor Notified</p>
-                <p style={{ fontSize: 13, color: t.txtL, lineHeight: 1.5, margin: '0 0 20px' }}>
-                  Your instructor has been notified. They will mark your attendance manually.
-                </p>
-                <button type="button" onClick={closeReport} style={{
-                  width: '100%', padding: 12, borderRadius: 12,
-                  border: `1.5px solid ${t.bdr}`, background: t.bg,
-                  fontSize: 13, fontWeight: 700, color: t.txt,
-                  cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  Close
-                </button>
-              </div>
-            ) : (
-              <>
-                <h2 style={{ fontSize: 17, fontWeight: 800, color: t.txt, margin: '0 0 16px', letterSpacing: -0.3 }}>
-                  Report an Issue
-                </h2>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-                  {REPORT_REASONS.map((r) => {
-                    const selected = selectedReason === r.id;
-                    return (
-                      <button key={r.id} type="button" onClick={() => setSelectedReason(r.id)} style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        padding: '13px 14px', borderRadius: 13, cursor: 'pointer',
-                        background: selected ? t.priLL : t.bg,
-                        border: `1.5px solid ${selected ? t.pri : t.bdr}`,
-                        fontFamily: "'DM Sans', sans-serif", textAlign: 'left',
-                        transition: 'border-color .15s, background .15s',
-                      }}>
-                        <div style={{
-                          width: 36, height: 36, borderRadius: 10,
-                          background: selected ? t.pri : t.bdr,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                          transition: 'background .15s',
-                        }}>
-                          {r.icon(selected ? '#fff' : t.txtL)}
-                        </div>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: selected ? t.pri : t.txt }}>
-                          {r.label}
-                        </span>
-                        {selected && (
-                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none"
-                            stroke={t.pri} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                            style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                            <path d="M20 6L9 17l-5-5" />
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {notifyError && (
-                  <p style={{ fontSize: 12, color: t.acc, marginBottom: 10, textAlign: 'center' }}>{notifyError}</p>
-                )}
-
-                <button type="button"
-                  onClick={handleNotifyInstructor}
-                  disabled={!selectedReason || notifyLoading}
-                  style={{
-                    width: '100%', background: selectedReason ? 'linear-gradient(135deg,#047857,#059669)' : t.bdr,
-                    color: '#fff', border: 'none', borderRadius: 13,
-                    padding: '13px 16px', fontSize: 14, fontWeight: 700,
-                    cursor: selectedReason && !notifyLoading ? 'pointer' : 'not-allowed',
-                    fontFamily: "'DM Sans', sans-serif",
-                    boxShadow: selectedReason ? '0 6px 18px rgba(5,150,105,.3)' : 'none',
-                    marginBottom: 10, opacity: notifyLoading ? 0.7 : 1,
-                    transition: 'background .2s, box-shadow .2s',
-                  }}>
-                  {notifyLoading ? 'Sending…' : 'Notify Instructor'}
-                </button>
-
-                <button type="button" onClick={closeReport} style={{
-                  width: '100%', padding: 12, borderRadius: 12,
-                  border: `1.5px solid ${t.bdr}`, background: 'none',
-                  fontSize: 13, fontWeight: 700, color: t.txtL,
-                  cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
-                }}>
-                  Cancel
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
