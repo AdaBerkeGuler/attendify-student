@@ -79,12 +79,20 @@ export default function Profile() {
       api.get('/attendance/my/summary').catch(() => null),
     ]).then(([meData, notifData, summaryData]) => {
       if (meData) {
+        // Compose full_name from first_name + last_name
+        if (!meData.full_name && (meData.first_name || meData.last_name)) {
+          meData.full_name = [meData.first_name, meData.last_name].filter(Boolean).join(' ');
+        }
         // Calculate overall attendance rate from summary
         if (summaryData && Array.isArray(summaryData) && summaryData.length > 0) {
           const avg = summaryData.reduce((sum, s) => sum + (s.attendance_rate ?? 0), 0) / summaryData.length;
           meData.overall_attendance_rate = Math.round(avg);
+          meData.total_courses  = summaryData.length;
+          meData.total_sessions = summaryData.reduce((sum, s) => sum + (s.total_sessions ?? 0), 0);
         } else {
           meData.overall_attendance_rate = meData.overall_attendance_rate ?? 0;
+          meData.total_courses  = meData.total_courses  ?? 0;
+          meData.total_sessions = meData.total_sessions ?? 0;
         }
         setProfile(meData);
       }
