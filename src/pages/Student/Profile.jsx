@@ -481,24 +481,6 @@ export default function Profile() {
             <p style={sectionLabel}>Preferences</p>
             <div style={{ background: t.card, borderRadius: 16, border: `1px solid ${t.bdr}`, overflow: 'hidden' }}>
 
-              {/* Language row — EN/TR pill */}
-              <div style={{ padding: '12px 15px', borderBottom: `1px solid ${t.bdr}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 9, background: t.priLL, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width={13} height={13} viewBox="0 0 24 24" fill="none"
-                    stroke={t.pri} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12z" />
-                    <path d="M2 12h20" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                </div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: t.txt, margin: 0, flex: 1 }}>Language</p>
-                {/* EN/TR pill — TODO: wire to i18n when implemented */}
-                <div style={{ display: 'flex', background: t.bg, borderRadius: 999, padding: 3 }}>
-                  <button style={pillBtn(lang === 'en')} onClick={() => handleLangChange('en')}>EN</button>
-                  <button style={pillBtn(lang === 'tr')} onClick={() => handleLangChange('tr')}>TR</button>
-                </div>
-              </div>
-
               {/* Time Zone row */}
               <div style={{ padding: '12px 15px', borderBottom: `1px solid ${t.bdr}`, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 9, background: t.priLL, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
