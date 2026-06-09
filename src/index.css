@@ -7,7 +7,7 @@ html, body, #root {
 
 body {
   min-height: 100vh;
-  background-color: #e5e7eb;
+  background-color: #ffffff;
   display: flex;
   justify-content: center;
   align-items: flex-start;
