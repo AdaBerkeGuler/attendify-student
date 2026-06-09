@@ -330,7 +330,7 @@ export default function Profile() {
 
         {/* 3 Tabs */}
         <div style={{ display: 'flex', borderTop: `1px solid ${t.bdr}` }}>
-          {['info', 'security', 'alerts'].map((tab) => {
+          {['info', 'alerts'].map((tab) => {
             const active = activeTab === tab;
             return (
               <button key={tab} type="button" onClick={() => setActiveTab(tab)} style={{
@@ -444,68 +444,6 @@ export default function Profile() {
               </svg>
               Log Out
             </button>
-          </>
-        )}
-
-        {/* ══ TAB 2: Security ══ */}
-        {activeTab === 'security' && (
-          <>
-            <p style={sectionLabel}>Password</p>
-            <div style={{ background: t.card, borderRadius: 14, border: `1px solid ${t.bdr}`, marginBottom: 10, overflow: 'hidden' }}>
-              <div
-                role="button" tabIndex={0}
-                onClick={() => setPwExpanded((e) => !e)}
-                onKeyDown={(e) => e.key === 'Enter' && setPwExpanded((v) => !v)}
-                style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
-              >
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: t.priLL, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
-                    stroke={t.pri} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
-                  </svg>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: t.txt, margin: 0 }}>Change Password</p>
-                </div>
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none"
-                  stroke={t.txtL} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  style={{ transform: pwExpanded ? 'rotate(90deg)' : 'none', transition: 'transform .2s', flexShrink: 0 }}>
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </div>
-              {pwExpanded && (
-                <div style={{ padding: '14px 16px 16px', borderTop: `1px solid ${t.bdr}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <input
-                    type="password" placeholder="Current password" style={inputStyle}
-                    value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)}
-                  />
-                  <input
-                    type="password" placeholder="New password" style={inputStyle}
-                    value={pwNew} onChange={(e) => setPwNew(e.target.value)}
-                  />
-                  <input
-                    type="password" placeholder="Confirm new password" style={inputStyle}
-                    value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)}
-                  />
-                  {pwError   && <p style={{ fontSize: 12, color: t.acc, margin: 0 }}>{pwError}</p>}
-                  {pwSuccess && <p style={{ fontSize: 12, color: t.ok,  margin: 0 }}>{pwSuccess}</p>}
-                  <button
-                    type="button"
-                    disabled={pwLoading}
-                    onClick={handleChangePassword}
-                    style={{
-                      background: t.priG, color: '#fff', border: 'none', borderRadius: 10,
-                      padding: '10px 16px', fontSize: 13, fontWeight: 700,
-                      cursor: pwLoading ? 'not-allowed' : 'pointer',
-                      fontFamily: "'DM Sans', sans-serif",
-                      opacity: pwLoading ? 0.7 : 1,
-                    }}
-                  >
-                    {pwLoading ? 'Updating…' : 'Update Password'}
-                  </button>
-                </div>
-              )}
-            </div>
           </>
         )}
 
